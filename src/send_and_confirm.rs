@@ -22,6 +22,7 @@ const RPC_RETRIES: usize = 0;
 const SIMULATION_RETRIES: usize = 2;
 const GATEWAY_RETRIES: usize = 150;
 const CONFIRM_RETRIES: usize = 1;
+const MAX_SUBMIT_RETRIES: usize = 5;
 
 const CONFIRM_DELAY: u64 = 2000;
 const GATEWAY_DELAY: u64 = 1000;
@@ -124,6 +125,7 @@ impl Miner {
         tx.sign(&[&signer], hash);
         // let mut sigs = vec![];
         let mut attempts = 0;
+        let mut submit_attempts = 0;
         loop {
             println!("Attempt: {:?}", attempts);
             match client2.send_transaction_with_config(&tx, send_cfg).await {
@@ -176,6 +178,13 @@ impl Miner {
 
                 // Handle submit errors
                 Err(err) => {
+                    submit_attempts += 1;
+                    if submit_attempts > MAX_SUBMIT_RETRIES {
+                        return Err(ClientError {
+                            request: None,
+                            kind: ClientErrorKind::Custom("Max submit retries".into()),
+                        });
+                    }
                     println!("Submit error : {:?}", err.kind().to_string());
                 }
             }
