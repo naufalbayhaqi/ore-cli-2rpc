@@ -28,6 +28,7 @@ struct Miner {
     pub keypair_filepath: Option<String>,
     pub priority_fee: u64,
     pub rpc_client: Arc<RpcClient>,
+    pub rpc_client2: Arc<RpcClient>,
 }
 
 #[derive(Parser, Debug)]
@@ -35,11 +36,19 @@ struct Miner {
 struct Args {
     #[arg(
         long,
-        value_name = "NETWORK_URL",
-        help = "Network address of your RPC provider",
+        value_name = "PRIMARY_RPC",
+        help = "Network address of your primary RPC provider used for all requests except sending txs",
         global = true
     )]
     rpc: Option<String>,
+
+    #[arg(
+        long,
+        value_name = "SECONDARY_RPC",
+        help = "Network address of your second RPC provider used to send transaction",
+        global = true
+    )]
+    rpc2: Option<String>,
 
     #[clap(
         global = true,
@@ -190,12 +199,15 @@ async fn main() {
     };
 
     // Initialize miner.
-    let cluster = args.rpc.unwrap_or(cli_config.json_rpc_url);
+    let cluster = args.rpc.unwrap_or(cli_config.json_rpc_url.clone());
+    let cluster2 = args.rpc2.unwrap_or(cli_config.json_rpc_url);
     let default_keypair = args.keypair.unwrap_or(cli_config.keypair_path);
     let rpc_client = RpcClient::new_with_commitment(cluster, CommitmentConfig::confirmed());
+    let rpc_client2 = RpcClient::new_with_commitment(cluster2, CommitmentConfig::confirmed());
 
     let miner = Arc::new(Miner::new(
         Arc::new(rpc_client),
+        Arc::new(rpc_client2),
         args.priority_fee,
         Some(default_keypair),
     ));
@@ -236,9 +248,10 @@ async fn main() {
 }
 
 impl Miner {
-    pub fn new(rpc_client: Arc<RpcClient>, priority_fee: u64, keypair_filepath: Option<String>) -> Self {
+    pub fn new(rpc_client: Arc<RpcClient>, rpc_client2: Arc<RpcClient>, priority_fee: u64, keypair_filepath: Option<String>) -> Self {
         Self {
             rpc_client,
+            rpc_client2,
             keypair_filepath,
             priority_fee,
         }

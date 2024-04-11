@@ -1,12 +1,12 @@
 [package]
-name = "ore-cli"
-version = "0.4.12-alpha"
-description = "A command line interface for the Ore program."
+name = "ore-cli-2rpc"
+version = "0.1.2"
+description = "A command line interface for the Ore program with 2 rpcs."
 license = "Apache-2.0"
 edition = "2021"
 
 [[bin]]
-name = "ore"
+name = "orecustom"
 path = "src/main.rs"
 
 [features]

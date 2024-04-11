@@ -43,6 +43,7 @@ impl Miner {
             println!("Balance: {} ORE", balance);
             println!("Claimable: {} ORE", rewards);
             println!("Reward rate: {} ORE", reward_rate);
+            println!("Threads: {} ", threads);
 
             // Escape sequence that clears the screen and the scrollback buffer
             println!("\nMining for a valid hash...");

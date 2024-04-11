@@ -19,12 +19,12 @@ use solana_transaction_status::{TransactionConfirmationStatus, UiTransactionEnco
 use crate::Miner;
 
 const RPC_RETRIES: usize = 0;
-const SIMULATION_RETRIES: usize = 4;
+const SIMULATION_RETRIES: usize = 2;
 const GATEWAY_RETRIES: usize = 150;
 const CONFIRM_RETRIES: usize = 1;
 
-const CONFIRM_DELAY: u64 = 0;
-const GATEWAY_DELAY: u64 = 300;
+const CONFIRM_DELAY: u64 = 2000;
+const GATEWAY_DELAY: u64 = 1000;
 
 impl Miner {
     pub async fn send_and_confirm(
@@ -36,6 +36,7 @@ impl Miner {
         let mut stdout = stdout();
         let signer = self.signer();
         let client = self.rpc_client.clone();
+        let client2 = self.rpc_client2.clone();
 
         // Return error if balance is zero
         let balance = client.get_balance(&signer.pubkey()).await.unwrap();
@@ -125,7 +126,7 @@ impl Miner {
         let mut attempts = 0;
         loop {
             println!("Attempt: {:?}", attempts);
-            match client.send_transaction_with_config(&tx, send_cfg).await {
+            match client2.send_transaction_with_config(&tx, send_cfg).await {
                 Ok(sig) => {
                     println!("{:?}", sig);
                     // sigs.push(sig);
@@ -166,7 +167,7 @@ impl Miner {
 
                             // Handle confirmation errors
                             Err(err) => {
-                                println!("{:?}", err.kind().to_string());
+                                println!("Confirmation error : {:?}", err.kind().to_string());
                             }
                         }
                     }
@@ -175,7 +176,7 @@ impl Miner {
 
                 // Handle submit errors
                 Err(err) => {
-                    println!("{:?}", err.kind().to_string());
+                    println!("Submit error : {:?}", err.kind().to_string());
                 }
             }
 
