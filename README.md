@@ -34,6 +34,8 @@ Use the command **ore2rpc** instead of **ore**.
 
 This custom ore client accept one more option that is the rpc2 option. The rpc2 option will be the rpc who will receive the sendTransaction method. The other rpc will receive all the others request like getSignaturesStatuses, getLatestBlockHash, getVersion, etc...
 
+<em>You can use the same rpc in both variables</em>
+
 ```sh
 $rpc1="url_rpc_1"
 $rpc2="url_rpc_2"
