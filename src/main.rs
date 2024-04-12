@@ -29,6 +29,7 @@ struct Miner {
     pub priority_fee: u64,
     pub rpc_client: Arc<RpcClient>,
     pub rpc_client2: Arc<RpcClient>,
+    pub speed_mode: Option<String>,
 }
 
 #[derive(Parser, Debug)]
@@ -75,6 +76,16 @@ struct Args {
         global = true
     )]
     priority_fee: u64,
+
+    #[arg(
+        long,
+        value_name = "SPEED_MODE",
+        help = "Speed mode of the client 'slow', 'normal', 'fast'",
+        default_value = "normal",
+        global = true,
+        value_parser = ["slow", "normal", "fast"]
+    )]
+    speed_mode: Option<String>,
 
     #[command(subcommand)]
     command: Commands,
@@ -145,7 +156,7 @@ struct MineArgs {
         help = "The number of threads to dedicate to mining",
         default_value = "1"
     )]
-    threads: u64,
+    threads: u64
 }
 
 #[derive(Parser, Debug)]
@@ -210,6 +221,7 @@ async fn main() {
         Arc::new(rpc_client2),
         args.priority_fee,
         Some(default_keypair),
+        args.speed_mode
     ));
 
     // Execute user command.
@@ -248,12 +260,13 @@ async fn main() {
 }
 
 impl Miner {
-    pub fn new(rpc_client: Arc<RpcClient>, rpc_client2: Arc<RpcClient>, priority_fee: u64, keypair_filepath: Option<String>) -> Self {
+    pub fn new(rpc_client: Arc<RpcClient>, rpc_client2: Arc<RpcClient>, priority_fee: u64, keypair_filepath: Option<String>, speed_mode: Option<String>) -> Self {
         Self {
             rpc_client,
             rpc_client2,
             keypair_filepath,
             priority_fee,
+            speed_mode
         }
     }
 

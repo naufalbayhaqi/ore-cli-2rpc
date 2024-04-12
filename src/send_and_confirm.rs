@@ -20,24 +20,37 @@ use crate::Miner;
 
 const RPC_RETRIES: usize = 0;
 const SIMULATION_RETRIES: usize = 2;
-const GATEWAY_RETRIES: usize = 150;
+const GATEWAY_RETRIES: usize = 75;
 const CONFIRM_RETRIES: usize = 1;
 const MAX_SUBMIT_RETRIES: usize = 5;
-
-const CONFIRM_DELAY: u64 = 2000;
-const GATEWAY_DELAY: u64 = 1000;
 
 impl Miner {
     pub async fn send_and_confirm(
         &self,
         ixs: &[Instruction],
         dynamic_cus: bool,
-        skip_confirm: bool,
+        skip_confirm: bool
     ) -> ClientResult<Signature> {
         let mut stdout = stdout();
         let signer = self.signer();
         let client = self.rpc_client.clone();
         let client2 = self.rpc_client2.clone();
+        let speed_mode = self.speed_mode.as_deref().unwrap_or("normal");
+
+        // Set delay constants
+        let confirm_delay: u64 = match speed_mode {
+            "slow" => 4000,
+            "normal" => 2000,
+            "fast" => 1000,
+            _ => 2000,
+        };
+
+        let gateway_delay: u64 = match speed_mode {
+            "slow" => 2000,
+            "normal" => 1000,
+            "fast" => 500,
+            _ => 1000,
+        };
 
         // Return error if balance is zero
         let balance = client.get_balance(&signer.pubkey()).await.unwrap();
@@ -127,10 +140,11 @@ impl Miner {
         let mut attempts = 0;
         let mut submit_attempts = 0;
         loop {
-            println!("Attempt: {:?}", attempts);
             match client2.send_transaction_with_config(&tx, send_cfg).await {
                 Ok(sig) => {
-                    println!("{:?}", sig);
+                    let sig_string = sig.to_string();
+                    let formatted_sig = format!("{}...{}", &sig_string[..5], &sig_string[(sig_string.len() - 5)..]);
+                    println!("\nAttempt: {:?} ({:?})", attempts, formatted_sig);
                     // sigs.push(sig);
 
                     // Confirm tx
@@ -138,7 +152,8 @@ impl Miner {
                         return Ok(sig);
                     }
                     for _ in 0..CONFIRM_RETRIES {
-                        std::thread::sleep(Duration::from_millis(CONFIRM_DELAY));
+                        println!("Waiting for confirmation: {:?} ms", confirm_delay);
+                        std::thread::sleep(Duration::from_millis(confirm_delay));
                         match client.get_signature_statuses(&[sig]).await {
                             Ok(signature_statuses) => {
                                 println!("Confirmation: {:?}", signature_statuses.value[0]);
@@ -155,7 +170,7 @@ impl Miner {
                                                 | TransactionConfirmationStatus::Finalized => {
                                                     println!("Transaction landed!");
                                                     std::thread::sleep(Duration::from_millis(
-                                                        GATEWAY_DELAY,
+                                                        gateway_delay,
                                                     ));
                                                     return Ok(sig);
                                                 }
@@ -191,7 +206,8 @@ impl Miner {
 
             // Retry
             stdout.flush().ok();
-            std::thread::sleep(Duration::from_millis(GATEWAY_DELAY));
+            println!("Waiting before next attempt: {:?} ms", gateway_delay);
+            std::thread::sleep(Duration::from_millis(gateway_delay));
             attempts += 1;
             if attempts > GATEWAY_RETRIES {
                 return Err(ClientError {
