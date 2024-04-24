@@ -1,5 +1,6 @@
 use solana_program::keccak::Hash as KeccakHash;
 use solana_sdk::signature::Signer;
+use solana_program::pubkey::Pubkey;
 
 use crate::Miner;
 
